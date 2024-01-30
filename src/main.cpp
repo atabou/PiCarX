@@ -6,6 +6,7 @@
 #include <math.h>
 #include <signal.h>
 
+
 PiCarX* picarx = NULL;
 PIDController* PID = NULL;
 
@@ -55,9 +56,8 @@ void run() {
 
     }
 
-
-
 }
+
 
 void test() {
 
@@ -67,8 +67,6 @@ void test() {
 	    sleep(2);
 
     }
-    
-
 
 }
 

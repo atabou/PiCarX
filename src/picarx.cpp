@@ -168,7 +168,9 @@ void PiCarX::connect() {
     }
 
     // Iniialze steering
-    i2c_smbus_write_word_data(i2cfd, STEERING_PWM_TIMER_PRESCL_REG, STEERING_PWM_TIMER_PRESCL_VAL);
+
+    uint16_t prescaler = (uint16_t) ((float) MCU_CLK_FREQ) / (MCU_PWM_TICK + 1.0) / 50.0 - 1;
+    i2c_smbus_write_word_data(i2cfd, STEERING_PWM_TIMER_PRESCL_REG, prescaler);
     i2c_smbus_write_word_data(i2cfd, STEERING_PWM_TIMER_PERIOD_REG, MCU_PWM_TICK);
     this->setSteeringAngle(0);
 
@@ -184,11 +186,11 @@ void PiCarX::setMotorSpeed(float speed) {
 
     // Get direction and duty cycle
     uint16_t direction = (speed >= 0) ? 0 : 1;
-    float duty_cycle = saturate(speed, 0, 1);
+    float duty_cycle = fabs(speed);
 
     // Set direction
     gpiod_line_set_value(this->mot1_dir_line, direction);
-    gpiod_line_set_value(this->mot2_dir_line, direction);
+    gpiod_line_set_value(this->mot2_dir_line, !direction);
 
     // Calculate pulse width in number of ticks
     uint16_t pulse_width = (uint16_t) round(duty_cycle * MCU_PWM_TICK);
@@ -202,17 +204,23 @@ void PiCarX::setMotorSpeed(float speed) {
 
 void PiCarX::setSteeringAngle(float angle) {
 
+    printf("angle: %f\n", angle);
+
     // Saturate angle between min and max
     angle = saturate(angle, STEERING_MIN_ANGLE, STEERING_MAX_ANGLE);
+    printf("saturated: %f\n", angle);
 
     // Convert angle to ms
     float ms = map(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE, SERVO_LEFT, SERVO_RIGHT);
+    printf("millisec: %f\n", ms);
 
     // Convert ms to duty cycle
     float dc = (ms * 1e-3) * STEERING_PWM_TIMER_FREQCY_VAL;
+    printf("duty cycle: %f\n", dc); 
 
     // Calculate pulse width in number of ticks
     uint16_t pulse_width = (uint16_t) round(dc * MCU_PWM_TICK);
+    printf("pulse width: %u\n", (uint32_t) pulse_width);
 
     // Set PWM of the steering servo
     i2c_smbus_write_word_data(i2cfd, STEERING_PWM_CHAN, pulse_width);
