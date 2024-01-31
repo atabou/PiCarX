@@ -48,7 +48,7 @@ extern "C" {
 #define BATT 0x13
 
 #define ADC_VREF 3.3
-#define ADC_RESO 4095
+#define ADC_RESO 4095.0
 #define BAT_VDIV 3.0
 
 PiCarX::PiCarX() {
@@ -68,6 +68,18 @@ void write_to_chip(uint8_t i2cfd, uint8_t reg, uint16_t data) {
     uint16_t reversed = ((data & 0xff) << 8) + (data >> 8);
     i2c_smbus_write_word_data(i2cfd, reg, reversed);
     //printf("i2c sent: [%#04x] [%#06x]\n\n", reg, reversed);
+
+}
+
+
+
+uint16_t read_from_chip(uint8_t i2cfd, uint8_t reg) {
+
+
+    write_to_chip(i2cfd, reg, 0);
+    uint16_t high = i2c_smbus_read_byte(i2cfd);
+    uint16_t low  = i2c_smbus_read_byte(i2cfd);
+    return (high << 8) + low;
 
 }
 
@@ -213,23 +225,17 @@ void PiCarX::setMotorSpeed(float speed) {
 
 void PiCarX::setSteeringAngle(float angle) {
 
-    printf("angle: %f\n", angle);
-
     // Saturate angle between min and max
     angle = saturate(angle, STEERING_MIN_ANGLE, STEERING_MAX_ANGLE);
-    printf("saturated: %f\n", angle);
 
     // Convert angle to ms
     float millis = map(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE, SERVO_LEFT, SERVO_RIGHT);
-    printf("millisec: %f\n", millis);
 
     // Convert ms to duty cycle
     float duty_cycle = millis / 20000;
-    printf("duty cycle: %f\n", duty_cycle); 
 
     // Calculate pulse width in number of ticks
     uint16_t pulse_width = duty_cycle * MCU_PWM_TICK;
-    printf("pulse width: %u\n", (uint32_t) pulse_width);
 
     // Set PWM of the steering servo
     write_to_chip(i2cfd, STEERING_PWM_CHAN, pulse_width);
@@ -252,7 +258,11 @@ float PiCarX::getAnalogVoltage(uint8_t channel) {
 
     }
 
-    uint16_t raw = i2c_smbus_read_word_data(this->i2cfd, channel);
+    uint16_t raw = read_from_chip(this->i2cfd, channel);
+
+    printf("channel %d - raw: %d\n", channel, raw);
+    printf("channel %d - perc: %f\n", channel, raw/ADC_RESO);
+    printf("channel %d - scaled: %f\n", channel, raw * ADC_VREF / ADC_RESO);
 
     return raw * ADC_VREF / ADC_RESO;
 
@@ -261,7 +271,7 @@ float PiCarX::getAnalogVoltage(uint8_t channel) {
 
 float PiCarX::getBatteryVoltage() {
 
-    uint16_t raw = i2c_smbus_read_word_data(this->i2cfd, BATT);
+    uint16_t raw = read_from_chip(this->i2cfd, BATT);
 
     float divided = raw * ADC_VREF / ADC_RESO;
 

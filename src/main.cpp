@@ -35,13 +35,19 @@ void run() {
 
         // Get battery voltage
         float battery_voltage = picarx->getBatteryVoltage();
+	printf("battery: %f V\n", battery_voltage);
 
         // Get analog voltage from A0 and A1
         float left  = picarx->getAnalogVoltage(A0) * 5.7f;
-        float right = picarx->getAnalogVoltage(A1) * 5.7f;
+        float right = picarx->getAnalogVoltage(A3) * 5.7f;
 
-        // Get log difference between left and right
+	printf("left: %f V\n", left);
+	printf("right: %f V\n", right);
+        
+	// Get log difference between left and right
         float diff = log(left + 0.25) - log(right + 0.25);
+
+	printf("log diff: %f\n\n", diff);
 
         // Verify the validity of the difference
         if (!isnan(diff) && !isinf(diff)) {
@@ -54,6 +60,8 @@ void run() {
         
         }
 
+	sleep(1);
+
     }
 
 }
@@ -61,6 +69,16 @@ void run() {
 
 void test() {
 
+    picarx->setMotorSpeed(0.5f);
+    sleep(2);
+    picarx->setMotorSpeed(1.0f);
+    sleep(2);
+    picarx->setMotorSpeed(-0.5f);
+    sleep(2);
+    picarx->setMotorSpeed(-1.0f);
+    sleep(2);
+    picarx->setMotorSpeed(0.0f);
+ 
     for (float i=-30; i<=30; i+=10) {
 
 	    picarx->setSteeringAngle(i);
@@ -96,7 +114,10 @@ int main() {
     // Set steering angle
     picarx->setSteeringAngle(0.0f);
 
-    test();
+
+    //test();
+    run();
+
     if (picarx != NULL) {
         picarx->disconnect();
         delete picarx;
