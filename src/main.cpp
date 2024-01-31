@@ -45,7 +45,9 @@ void run() {
 	printf("right: %f V\n", right);
         
 	// Get log difference between left and right
-        float diff = log(left + 0.25) - log(right + 0.25);
+        //float diff = log(left + 0.25) - log(right + 0.25);
+        float diff = log(left) - log(right);
+	//float diff = left - right;
 
 	printf("log diff: %f\n\n", diff);
 
@@ -60,7 +62,7 @@ void run() {
         
         }
 
-	sleep(1);
+	usleep(100000);
 
     }
 
@@ -96,7 +98,7 @@ int main() {
 
     // Create PiCarX object
     picarx = new PiCarX();
-    PID    = new PIDController(0.5f, 0.0f, 0.0f, 0.1f);
+    PID    = new PIDController(15.0f, 0.0f, 0.0f, 0.1f);
 
     // Connect to PiCarX
     picarx->connect();
