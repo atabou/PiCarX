@@ -102,8 +102,9 @@ int main() {
         plot->add(diff);
 
         // Plot every 100 iterations
-        if (counter % 100 == 0) {
+        if (counter == 100) {
             plot->plot();
+            counter = 0;
         }
 
         // Verify the validity of the difference
