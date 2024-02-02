@@ -1,7 +1,7 @@
 #include "filters.hpp"
 
 
-FIRFilter::FIRFilter(float alpha=1.0f, float x0=0.0f) {
+FIRFilter::FIRFilter(float alpha, float x0) {
 
     this->alpha = alpha;
     this->xp = x0;
@@ -18,7 +18,7 @@ float FIRFilter::pass(float x) {
 }
 
 
-void FIRFilter::reset(float x0=0.0f) {
+void FIRFilter::reset(float x0) {
 
     this->xp = x0;
 

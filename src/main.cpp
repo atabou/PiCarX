@@ -9,9 +9,12 @@
 #include <signal.h>
 
 
-#define FILTER_ALPHA_COEFF 1.0f
+#define FILTER_ALPHA_COEFF 0.1f
 #define LOG_DIFF_BIAS 0.25f
 
+#define KP 10.0f
+#define KI 0.0f
+#define KD 0.5f
 
 /**
  * @brief Gracefully exits the program.
@@ -30,6 +33,9 @@ FIRFilter* filter = NULL;
 
 int main() {
 
+    int dt_us = 10000;
+    float dt_s = dt_us / 1e-6;
+
     // Register graceful exit handler
     signal(SIGINT, gracefulExit);
 
@@ -46,7 +52,7 @@ int main() {
    }
 
     // Initialize PID controller.
-    PID = new PIDController(15.0f, 0.0f, 0.0f, 0.1f);
+    PID = new PIDController(KP, KI, KD, dt_s);
 
     // Initialize FIR filter by calculating the mean of the first 100 samples
     float mu0 = 0.0f;
@@ -57,11 +63,11 @@ int main() {
         float right = picarx->getAnalogVoltage(A3) * 5.7f;
         
         mu0 += logdiff(left, right, LOG_DIFF_BIAS);
-        usleep(1000); // TODO check the ability of the MCU to handle this sampling rate
+        usleep(dt_us); // TODO check the ability of the MCU to handle this sampling rate
     
     }
 
-    float mu0 /= 100.0f;
+    mu0 /= 100.0f;
 
     filter = new FIRFilter(FILTER_ALPHA_COEFF, mu0);
 
@@ -87,12 +93,14 @@ int main() {
             // Get pid response
             float response = PID->pass(0.0f, filtered);
 
+            printf("%.2f -> %.2f\n", filtered, response);
+
             // Set steering angle
             picarx->setSteeringAngle(response);
         
         }
 
-        usleep(100000);
+        usleep(dt_us);
 
     }
 

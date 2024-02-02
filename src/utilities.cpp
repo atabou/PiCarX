@@ -15,7 +15,7 @@ float map(float value, float min1, float max1, float min2, float max2) {
 }
 
 
-float logdiff(float a, float b, float bias=0.0f) {
+float logdiff(float a, float b, float bias) {
 
     return log(a + bias) - log(b + bias);
 
