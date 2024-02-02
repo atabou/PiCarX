@@ -44,6 +44,7 @@ extern "C" {
 #define SERVO_MIN_ANGLE -90.0
 #define SERVO_LEFT  500
 #define SERVO_RIGHT 2500
+#define SERVO_PERIOD_US 20000.0
 
 #define BATT 0x13
 
@@ -67,8 +68,7 @@ void write_to_chip(uint8_t i2cfd, uint8_t reg, uint16_t data) {
 
     uint16_t reversed = ((data & 0xff) << 8) + (data >> 8);
     i2c_smbus_write_word_data(i2cfd, reg, reversed);
-    //printf("i2c sent: [%#04x] [%#06x]\n\n", reg, reversed);
-
+    
 }
 
 
@@ -228,11 +228,11 @@ void PiCarX::setSteeringAngle(float angle) {
     // Saturate angle between min and max
     angle = saturate(angle, STEERING_MIN_ANGLE, STEERING_MAX_ANGLE);
 
-    // Convert angle to ms
-    float millis = map(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE, SERVO_LEFT, SERVO_RIGHT);
+    // Convert angle to microseconds
+    float microsec = map(angle, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE, SERVO_LEFT, SERVO_RIGHT);
 
-    // Convert ms to duty cycle
-    float duty_cycle = millis / 20000;
+    // Convert microseconds to duty cycle
+    float duty_cycle = microsec / SERVO_PERIOD_US;
 
     // Calculate pulse width in number of ticks
     uint16_t pulse_width = duty_cycle * MCU_PWM_TICK;
@@ -259,10 +259,6 @@ float PiCarX::getAnalogVoltage(uint8_t channel) {
     }
 
     uint16_t raw = read_from_chip(this->i2cfd, channel);
-
-    printf("channel %d - raw: %d\n", channel, raw);
-    printf("channel %d - perc: %f\n", channel, raw/ADC_RESO);
-    printf("channel %d - scaled: %f\n", channel, raw * ADC_VREF / ADC_RESO);
 
     return raw * ADC_VREF / ADC_RESO;
 
