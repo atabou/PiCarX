@@ -82,6 +82,9 @@ int main() {
     // Set speed
     picarx->setMotorSpeed(SPEED);
 
+    // Plot counter
+    int counter = 0;
+
     // Control loop
     while (true) {
 
@@ -96,7 +99,12 @@ int main() {
         float diff = logdiff(left, right, LOG_DIFF_BIAS);
 
         // Add data to plot
-        plot->addDataPoint(diff);
+        plot->add(diff);
+
+        // Plot every 100 iterations
+        if (counter % 100 == 0) {
+            plot->plot();
+        }
 
         // Verify the validity of the difference
         if (!isnan(diff) && !isinf(diff)) {
@@ -113,6 +121,7 @@ int main() {
         }
 
         usleep(dt_us);
+        counter++;
 
     }
 

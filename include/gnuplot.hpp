@@ -8,14 +8,77 @@
 #include <chrono>
 #include <thread>
 
+
+    class Delay {
+        
+        private:
+            std::vector<double> data;
+            size_t oldest;
+
+        public:
+
+            // Constructor initializes the buffer with zeros
+            Delay() {}
+
+            // Constructor initializes the buffer with initial data
+            Delay(const std::vector<double>& initialData) {
+
+                data = initialData;
+                oldest = 0;
+
+            }
+
+            // Copy constructor
+            Delay(const Delay& other) {
+
+                data = other.data;
+                oldest = other.oldest;
+
+            }
+
+            // Assingment operator
+            Delay& operator=(const std::vector<double>& initialData) {
+
+                data = initialData;
+                oldest = 0;
+
+                return *this;
+
+            }
+
+            // Add a new data point to the buffer
+            void add(double value) {
+
+                data[oldest] = value;
+                oldest = (oldest + 1) % data.size();
+
+            }
+
+            // Get the value at the specified index where the specified index is 0 for the oldest value
+            float operator[](size_t index) const {
+
+                return data[(oldest + index) % data.size()];
+
+            }
+
+            size_t size() const {
+
+                return data.size();
+
+            }
+    
+    };
+
+
     class GNUPlot {
 
         private:
             
             FILE* gnuplotPipe = nullptr;
             double start_time;
-            std::vector<double> xData;
-            std::vector<double> yData;
+            double update_rate;
+            Delay xData;
+            Delay yData;
 
         public:
         
@@ -44,42 +107,47 @@
                     yData = std::vector<double>(buffer_size, 0);
 
                     // Get start time
-                    start_time = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+                    this->start_time  = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+                    this->update_rate = update_rate;
+
+                    std::vector<double> time(buffer_size, 0.0f);
+                    std::vector<double> data(buffer_size, 0.0f);
 
                     // Fill buffer with initial data
-                    // We start with 0 at the right end of the plot
                     for (size_t i = 0; i < buffer_size; ++i) {
                         
-                        xData[i] = - (float) (buffer_size - i) * update_rate;
-			printf("%f\n", - (buffer_size - i) * update_rate);
-			yData[i] = 0.0f;
+                        time[i] = - (float) (buffer_size - i) * update_rate;
+                        data[i] = 0.0f;
 
                     }
 
+                    // Initialize the delays
+                    xData = Delay(time);
+                    yData = Delay(data);
+
                     // Set the x range
-                    sendCommand("set xrange [" + std::to_string(xData.front()) + ":" + std::to_string(xData.back()) + "]");
+                    sendCommand("set xrange [" + std::to_string(xData[0]) + ":" + std::to_string(xData[buffer_size - 1]) + "]");
                     sendCommand("set yrange [" + std::to_string(min) + ":" + std::to_string(max) + "]");
 
-		    printf("%f, %f\n", xData.front(), xData.back());
-		
 		}
             
             }
 
 
-	    void disconnect() {
+            void disconnect() {
 
                 if (gnuplotPipe) {
-	            sendCommand("quit");
-		    pclose(gnuplotPipe);
+                    sendCommand("quit");
+                    pclose(gnuplotPipe);
                     gnuplotPipe = nullptr;
-		}
- 
+                }
+            
+            }
 
-	    }
             ~GNUPlot() {
-
-		this->disconnect();
+                
+                this->disconnect();
+            
             }
 
             // Prevent copy and assignment
@@ -97,30 +165,26 @@
             
             }
 
-            void addDataPoint(double x) {
+            void add(double x) {
 
-                // Remove oldest data point
-                xData.erase(xData.begin());
-                yData.erase(yData.begin()); 
+                // Get current time
+                double current_time = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-                // Get timestamp
-                auto now = std::chrono::system_clock::now();
+                // Add data point to buffer
+                xData.add(current_time - start_time);
+                yData.add(x);
+		
+            }
 
-                // Add new data point
-                xData.push_back(std::chrono::duration<double>(now.time_since_epoch()).count() - this->start_time);
-                yData.push_back(x);
+            void plot() {
 
-                // Set the new x range
-                sendCommand("set xrange [" + std::to_string(xData.front()) + ":" + std::to_string(xData.back()) + "]");
                 sendCommand("plot '-' with linespoints");
 
-                // Send new data points
                 for (size_t i = 0; i < xData.size(); ++i) {
                     fprintf(gnuplotPipe, "%f %f\n", xData[i], yData[i]);
                 }
 
                 sendCommand("e"); // End of dataset
-		
 
             }
 
