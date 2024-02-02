@@ -9,12 +9,14 @@
 #include <signal.h>
 
 
-#define FILTER_ALPHA_COEFF 0.1f
+#define FILTER_ALPHA_COEFF 1.0f
 #define LOG_DIFF_BIAS 0.25f
 
 #define KP 10.0f
 #define KI 0.0f
-#define KD 0.5f
+#define KD 0.0f
+
+#define SPEED 0.5f
 
 /**
  * @brief Gracefully exits the program.
@@ -71,6 +73,7 @@ int main() {
 
     filter = new FIRFilter(FILTER_ALPHA_COEFF, mu0);
 
+    picarx->setMotorSpeed(SPEED);
     // Control loop
     while (true) {
 
