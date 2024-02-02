@@ -22,4 +22,14 @@
     */
     float map(float value, float min1, float max1, float min2, float max2);
 
+
+    /**
+     * @brief Calculates the difference of logarithms two numbers with an applied bias.
+     * @param a The first number.
+     * @param b The second number.
+     * @param bias The bias to apply.
+     * @return The difference of logarithms.
+    */
+    float logdiff(float a, float b, float bias=0.0f);
+
 #endif // UTILITIES_HPP
