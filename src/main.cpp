@@ -2,6 +2,7 @@
 #include "pid.hpp"
 #include "filters.hpp"
 #include "utilities.hpp"
+#include "gnuplot.hpp"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -16,7 +17,7 @@
 #define KI 0.0f
 #define KD 0.0f
 
-#define SPEED 0.5f
+#define SPEED 0.0f
 
 /**
  * @brief Gracefully exits the program.
@@ -31,12 +32,14 @@ void gracefulExit(int sig);
 PiCarX* picarx = NULL;
 PIDController* PID = NULL;
 FIRFilter* filter = NULL;
+GNUPlot* plot = NULL;
+
 
 
 int main() {
 
     int dt_us = 10000;
-    float dt_s = dt_us / 1e-6;
+    float dt_s = (float) dt_us * 1e-6;
 
     // Register graceful exit handler
     signal(SIGINT, gracefulExit);
@@ -73,7 +76,12 @@ int main() {
 
     filter = new FIRFilter(FILTER_ALPHA_COEFF, mu0);
 
+    // Initialize GNUPlot
+    plot = new GNUPlot("Steering Angle", "Log Difference", -5.0, 5.0f, 100, dt_s);
+
+    // Set speed
     picarx->setMotorSpeed(SPEED);
+
     // Control loop
     while (true) {
 
@@ -87,6 +95,9 @@ int main() {
 	    // Get log difference between left and right
         float diff = logdiff(left, right, LOG_DIFF_BIAS);
 
+        // Add data to plot
+        plot->addDataPoint(diff);
+
         // Verify the validity of the difference
         if (!isnan(diff) && !isinf(diff)) {
         
@@ -95,8 +106,6 @@ int main() {
 
             // Get pid response
             float response = PID->pass(0.0f, filtered);
-
-            printf("%.2f -> %.2f\n", filtered, response);
 
             // Set steering angle
             picarx->setSteeringAngle(response);
@@ -118,6 +127,11 @@ int main() {
         PID = NULL;
     }
 
+    if (plot != NULL) {
+        delete plot;
+        plot = NULL;
+    }
+
     return 0;
 
 }
@@ -136,6 +150,12 @@ void gracefulExit(int sig) {
     if (PID != NULL) {
         delete PID;
         PID = NULL;
+    }
+
+    if (plot != NULL) {
+        plot->disconnect();
+	delete plot;
+        plot = NULL;
     }
 
     exit(0);
