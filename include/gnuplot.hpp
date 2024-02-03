@@ -178,6 +178,7 @@
 
             void plot() {
 
+                sendCommand("set xrange [" + std::to_string(xData[0]) + ":" + std::to_string(xData[xData.size() - 1]) + "]");
                 sendCommand("plot '-' with linespoints");
 
                 for (size_t i = 0; i < xData.size(); ++i) {
