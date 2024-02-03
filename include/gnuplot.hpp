@@ -154,7 +154,7 @@
 
                             this->sendCommand("e"); // End of dataset
 
-                            std::this_thread::sleep_for(std::chrono::milliseconds((int) this->update_rate*100);
+                            std::this_thread::sleep_for(std::chrono::milliseconds((int) this->update_rate*1000));
 
                         }
 

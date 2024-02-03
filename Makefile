@@ -14,7 +14,7 @@ DEPS := $(OBJS:.o=.d)
 # Flags
 CXXFLAGS := -MMD -MP
 LDFLAGS :=
-LDLIBS := -li2c -lgpiod
+LDLIBS := -li2c -lgpiod -lpthread
 
 # Target
 TARGET := main

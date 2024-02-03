@@ -17,7 +17,7 @@
 #define KI 0.0f
 #define KD 0.0f
 
-#define SPEED 0.0f
+#define SPEED 0.5f
 
 /**
  * @brief Gracefully exits the program.
@@ -82,9 +82,6 @@ int main() {
     // Set speed
     picarx->setMotorSpeed(SPEED);
 
-    // Plot counter
-    int counter = 0;
-
     // Control loop
     while (true) {
 
@@ -101,12 +98,6 @@ int main() {
         // Add data to plot
         plot->add(diff);
 
-        // Plot every 100 iterations
-        if (counter == 100) {
-            plot->plot();
-            counter = 0;
-        }
-
         // Verify the validity of the difference
         if (!isnan(diff) && !isinf(diff)) {
         
@@ -122,7 +113,6 @@ int main() {
         }
 
         usleep(dt_us);
-        counter++;
 
     }
 
