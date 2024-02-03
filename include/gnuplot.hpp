@@ -2,12 +2,12 @@
 
     #define GNUPLOT_HPP
 
-#include <cstdio>
-#include <iostream>
-#include <vector>
-#include <chrono>
-#include <thread>
-
+    #include <cstdio>
+    #include <iostream>
+    #include <vector>
+    #include <chrono>
+    #include <thread>
+    #include <string>
 
     class Delay {
         
@@ -74,11 +74,16 @@
 
         private:
             
+            std::string title;
+            std::string xlabel;
+            std::string ylabel;
             FILE* gnuplotPipe = nullptr;
             double start_time;
             double update_rate;
             Delay xData;
             Delay yData;
+            bool running;
+            std::thread plot_thread;
 
         public:
         
@@ -91,16 +96,14 @@
                 if (!gnuplotPipe) {
             
                     std::cerr << "Could not open pipe to GNUplot" << std::endl;
+                    exit(1);
             
                 } else {
 
-                    // Initialize GNUplot settings
-                    sendCommand("set title '" + title + "'");
-                    sendCommand("set xlabel 'time (s)'");
-                    sendCommand("set ylabel '" + label + "'");
-                    sendCommand("set grid");
-                    sendCommand("set term x11");
-                    sendCommand("set style data linespoints");
+                    // Set plot title and labels
+                    this->title  = title;
+                    this->xlabel = "time (s)";
+                    this->ylabel = label;
 
                     // Initialize data buffer
                     xData = std::vector<double>(buffer_size, 0);
@@ -125,21 +128,54 @@
                     xData = Delay(time);
                     yData = Delay(data);
 
-                    // Set the x range
-                    sendCommand("set xrange [" + std::to_string(xData[0]) + ":" + std::to_string(xData[buffer_size - 1]) + "]");
-                    sendCommand("set yrange [" + std::to_string(min) + ":" + std::to_string(max) + "]");
+                    // Start the plot thread
+                    this->running = true;
+                    
+                    this->plot_thread = std::thread([this, min, max] {
+                        
+                        // Initialize GNUplot settings
+                        this->sendCommand("set title '"  + this->title  + "'");
+                        this->sendCommand("set xlabel '" + this->xlabel + "'");
+                        this->sendCommand("set ylabel '" + this->ylabel + "'");
+                        this->sendCommand("set grid");
+                        this->sendCommand("set term x11");
+                        this->sendCommand("set style data linespoints");
+                        this->sendCommand("set xrange [" + std::to_string(this->xData[0]) + ":" + std::to_string(xData[this->xData.size() - 1]) + "]");
+                        this->sendCommand("set yrange [" + std::to_string(min) + ":" + std::to_string(max) + "]");
 
-		}
+                        while (this->running) {
+                            
+                            this->sendCommand("set xrange [" + std::to_string(this->xData[0]) + ":" + std::to_string(this->xData[this->xData.size() - 1]) + "]");
+                            this->sendCommand("plot '-' with linespoints");
+
+                            for (size_t i = 0; i < xData.size(); ++i) {
+                                fprintf(this->gnuplotPipe, "%f %f\n", this->xData[i], this->yData[i]);
+                            }
+
+                            this->sendCommand("e"); // End of dataset
+
+                            std::this_thread::sleep_for(std::chrono::milliseconds((int) this->update_rate*100);
+
+                        }
+
+                        sendCommand("quit");
+                    
+                    });
+                    
+                }
             
             }
 
 
             void disconnect() {
 
-                if (gnuplotPipe) {
-                    sendCommand("quit");
+                if (this->running) {
+                    
+                    this->running = false;
+                    this->plot_thread.join();
                     pclose(gnuplotPipe);
                     gnuplotPipe = nullptr;
+                
                 }
             
             }
@@ -176,18 +212,6 @@
 		
             }
 
-            void plot() {
-
-                sendCommand("set xrange [" + std::to_string(xData[0]) + ":" + std::to_string(xData[xData.size() - 1]) + "]");
-                sendCommand("plot '-' with linespoints");
-
-                for (size_t i = 0; i < xData.size(); ++i) {
-                    fprintf(gnuplotPipe, "%f %f\n", xData[i], yData[i]);
-                }
-
-                sendCommand("e"); // End of dataset
-
-            }
 
     };
 
